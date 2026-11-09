@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Cuenta - SeñorTendero</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="antialiased p-4 sm:p-8">
+
+  <main class="w-full max-w-md mx-auto space-y-6">
+    <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
+      <div>
+        <h1 class="text-lg font-extrabold text-slate-900">👤 Mi Estado de Cuenta</h1>
+        <p id="user-email" class="text-xs text-slate-500">Cargando...</p>
+      </div>
+      <button id="btn-logout" class="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Salir</button>
+    </header>
+
+    <!-- Saldo Personal -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg text-center">
+      <p class="text-xs font-bold uppercase text-blue-100">Total que Debes en la Tienda</p>
+      <p id="mi-deuda" class="text-4xl font-black mt-2">$0</p>
+    </div>
+
+    <!-- Tus Movimientos -->
+    <section class="bg-white/90 p-6 rounded-3xl shadow-sm border">
+      <h2 class="text-sm font-bold text-slate-800 uppercase mb-4">Tus Compras Fiadas</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b text-slate-400 text-xs uppercase">
+              <th class="pb-2">Fecha</th>
+              <th class="pb-2">Detalle</th>
+              <th class="pb-2 text-right">Valor</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-cliente" class="divide-y"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
