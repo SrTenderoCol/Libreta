@@ -10,91 +10,126 @@
 </head>
 <body class="antialiased p-4 sm:p-8 flex flex-col justify-between min-h-screen">
 
-  <main class="w-full max-w-5xl mx-auto space-y-6">
+  <main class="w-full max-w-6xl mx-auto space-y-6">
     <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
       <div>
         <h1 class="text-xl font-extrabold text-slate-900">🛒 Bienvenido Don Carlos</h1>
-        <p class="text-xs text-slate-500">Panel de administración de fiados y clientes</p>
+        <p class="text-xs text-slate-500">Gestión de cuentas individuales por cliente</p>
       </div>
       <button id="btn-logout" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Cerrar Sesión</button>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       
-      <!-- 1. Registrar Movimiento (Fiado o Abono) -->
-      <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-          <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i> Registrar Movimiento (Fiado / Abono)
-        </h2>
-        <form id="form-fiado" class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Seleccionar Cliente</label>
-            <select id="select-cliente-fiado" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none">
-              <option value="">-- Carga clientes primero --</option>
-            </select>
+      <!-- COLUMNA IZQUIERDA: Lista de Clientes y Creación -->
+      <div class="space-y-6 md:col-span-1">
+        
+        <!-- Lista de Clientes -->
+        <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
+          <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-blue-600"></i> Seleccionar Cuenta
+          </h2>
+          <div id="lista-clientes-tendero" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <p class="text-xs text-slate-400">Cargando clientes...</p>
+          </div>
+        </section>
+
+        <!-- Crear Cuenta de Cliente -->
+        <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
+          <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i> Nuevo Cliente
+          </h2>
+          <form id="form-crear-cliente" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase">Nombre Completo</label>
+              <input type="text" id="nuevo-nombre" placeholder="Ej: Pepito Pérez" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase">Usuario</label>
+              <input type="text" id="nuevo-user" placeholder="Ej: pepito01" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase">Contraseña</label>
+              <input type="password" id="nuevo-pass" placeholder="••••••••" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm">
+            </div>
+            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-xs shadow">Crear Cuenta</button>
+          </form>
+        </section>
+
+      </div>
+
+      <!-- COLUMNA DERECHA: Cuenta Activa del Cliente Seleccionado -->
+      <div class="md:col-span-2 space-y-6">
+        
+        <!-- Si no hay cliente seleccionado -->
+        <div id="sin-seleccion" class="bg-white/90 p-12 rounded-3xl shadow-sm border text-center space-y-3">
+          <i data-lucide="mouse-pointer-click" class="w-12 h-12 text-slate-300 mx-auto"></i>
+          <h2 class="text-base font-bold text-slate-700">Ninguna cuenta seleccionada</h2>
+          <p class="text-xs text-slate-400">Haz clic en un cliente de la lista izquierda para abrir su cuenta y gestionar sus fiados o abonos de forma segura.</p>
+        </div>
+
+        <!-- Panel Individual del Cliente (Oculto al inicio) -->
+        <div id="panel-cliente-activo" class="space-y-6 hidden">
+          
+          <!-- Encabezado de la cuenta y saldo actual -->
+          <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center">
+            <div>
+              <p class="text-xs font-bold uppercase text-blue-100">Cuenta Activa</p>
+              <h2 id="titulo-cliente-activo" class="text-2xl font-black mt-1">Nombre del Cliente</h2>
+            </div>
+            <div class="text-right">
+              <p class="text-xs font-bold uppercase text-blue-100">Deuda Total</p>
+              <p id="deuda-cliente-activo" class="text-3xl font-black mt-1">$0</p>
+            </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Tipo de Movimiento</label>
-            <select id="tipo-movimiento" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none font-semibold">
-              <option value="fiado">➕ Fiado / Compra (Suma a la deuda)</option>
-              <option value="abono">➖ Abono / Pago (Resta a la deuda)</option>
-            </select>
-          </div>
+          <!-- Formulario exclusivo para agregar movimiento a ESTE cliente -->
+          <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
+            <h3 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Registrar Transacción para este Cliente
+            </h3>
+            <form id="form-fiado-individual" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tipo</label>
+                <select id="tipo-movimiento" class="w-full p-2.5 bg-slate-50 border rounded-xl text-xs font-semibold outline-none">
+                  <option value="fiado">➕ Fiado (Suma)</option>
+                  <option value="abono">➖ Abono (Resta)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Concepto</label>
+                <input type="text" id="concepto" placeholder="Ej: 1 Leche / Abono" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-xs">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Monto ($)</label>
+                <input type="number" id="monto" placeholder="4500" required min="1" class="w-full p-2.5 bg-slate-50 border rounded-xl text-xs">
+              </div>
+              <button type="submit" class="sm:col-span-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-xs shadow transition">Guardar en la cuenta de este cliente</button>
+            </form>
+          </section>
 
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Concepto / Descripción</label>
-            <input type="text" id="concepto" placeholder="Ej: Saldo anterior / 1 Leche" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Monto ($)</label>
-            <input type="number" id="monto" placeholder="4500" required min="1" class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-          </div>
-          <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl text-sm shadow">Registrar Transacción</button>
-        </form>
-      </section>
+          <!-- Historial de movimientos del cliente seleccionado -->
+          <section class="bg-white/90 p-6 rounded-3xl shadow-sm border">
+            <h3 class="text-sm font-bold text-slate-800 uppercase mb-4">Historial de Movimientos de la Cuenta</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b text-slate-400 text-xs uppercase">
+                    <th class="pb-2">Fecha</th>
+                    <th class="pb-2">Detalle</th>
+                    <th class="pb-2 text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-cliente-activo" class="divide-y"></tbody>
+              </table>
+            </div>
+          </section>
 
-      <!-- 2. Crear Cuenta Exclusiva para un Cliente -->
-      <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-          <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i> Crear Cuenta a Cliente
-        </h2>
-        <form id="form-crear-cliente" class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Nombre Completo del Cliente</label>
-            <input type="text" id="nuevo-nombre" placeholder="Ej: Familia Pérez" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Usuario de Acceso</label>
-            <input type="text" id="nuevo-user" placeholder="Ej: perez01" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Contraseña / Clave Única</label>
-            <input type="password" id="nuevo-pass" placeholder="••••••••" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
-          </div>
-          <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl text-sm shadow">Crear Cuenta de Cliente</button>
-        </form>
-      </section>
+        </div>
+
+      </div>
 
     </div>
-
-    <!-- Historial General de la Tienda -->
-    <section class="bg-white/90 p-6 rounded-3xl shadow-sm border">
-      <h2 class="text-sm font-bold text-slate-800 uppercase mb-4">Historial General de la Tienda</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-          <thead>
-            <tr class="border-b text-slate-400 text-xs uppercase">
-              <th class="pb-2">Fecha</th>
-              <th class="pb-2">Cliente</th>
-              <th class="pb-2">Detalle</th>
-              <th class="pb-2 text-right">Valor</th>
-            </tr>
-          </thead>
-          <tbody id="tabla-tendero" class="divide-y"></tbody>
-        </table>
-      </div>
-    </section>
   </main>
 
   <footer class="text-center py-6 text-xs text-slate-400 mt-8">
