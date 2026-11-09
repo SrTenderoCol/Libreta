@@ -8,53 +8,70 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="antialiased p-4 sm:p-8">
+<body class="antialiased p-4 sm:p-8 flex flex-col justify-between min-h-screen">
 
-  <main class="w-full max-w-4xl mx-auto space-y-6">
+  <main class="w-full max-w-5xl mx-auto space-y-6">
     <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
       <div>
         <h1 class="text-xl font-extrabold text-slate-900">🛒 Panel del Tendero</h1>
-        <p class="text-xs text-slate-500">Administración de la tienda de tu amigo</p>
+        <p class="text-xs text-slate-500">Administración de fiados y clientes</p>
       </div>
       <button id="btn-logout" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Cerrar Sesión</button>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Formulario para fiar -->
+      
+      <!-- 1. Registrar Nuevo Fiado -->
       <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
-        <h2 class="text-sm font-bold text-slate-800 uppercase">Registrar Nuevo Fiado</h2>
+        <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i> Registrar Fiado a Cliente
+        </h2>
         <form id="form-fiado" class="space-y-3">
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Nombre del Cliente</label>
-            <input type="text" id="cliente-nombre" placeholder="Ej: Carlos Martínez" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+            <label class="block text-xs font-bold text-slate-600 uppercase">Seleccionar Cliente</label>
+            <select id="select-cliente-fiado" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none">
+              <option value="">-- Carga clientes primero --</option>
+            </select>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-600 uppercase">Concepto / Productos</label>
-            <input type="text" id="concepto" placeholder="Ej: Leche y pan" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+            <input type="text" id="concepto" placeholder="Ej: 1 Leche, 1 Pan" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-600 uppercase">Monto ($)</label>
             <input type="number" id="monto" placeholder="12800" required min="1" class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
-          <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl text-sm shadow">Guardar Registro</button>
+          <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl text-sm shadow">Guardar Fiado</button>
         </form>
       </section>
 
-      <!-- Resumen General -->
-      <section class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg flex flex-col justify-between">
-        <div>
-          <p class="text-xs font-bold uppercase text-blue-100">Total Cartera en la Calle</p>
-          <p id="total-cartera" class="text-4xl font-black mt-2">$0</p>
-        </div>
-        <div class="bg-white/10 p-4 rounded-2xl backdrop-blur-md">
-          <p class="text-xs text-blue-100">💡 Solo tú (el vendedor autorizado) puedes registrar deudas en este panel.</p>
-        </div>
+      <!-- 2. Crear Cuenta Exclusiva para un Cliente -->
+      <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
+        <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i> Crear Cuenta a Cliente
+        </h2>
+        <form id="form-crear-cliente" class="space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase">Nombre Completo</label>
+            <input type="text" id="nuevo-nombre" placeholder="Ej: Carlos Martínez" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase">Usuario de Acceso (Sin espacios)</label>
+            <input type="text" id="nuevo-user" placeholder="Ej: carlos01" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase">Contraseña asignada</label>
+            <input type="password" id="nuevo-pass" placeholder="••••••••" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+          </div>
+          <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl text-sm shadow">Crear Cuenta de Cliente</button>
+        </form>
       </section>
+
     </div>
 
-    <!-- Historial General -->
+    <!-- Historial General de la Tienda -->
     <section class="bg-white/90 p-6 rounded-3xl shadow-sm border">
-      <h2 class="text-sm font-bold text-slate-800 uppercase mb-4">Historial de Fiados Registrados</h2>
+      <h2 class="text-sm font-bold text-slate-800 uppercase mb-4">Historial General de la Tienda</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead>
@@ -70,6 +87,10 @@
       </div>
     </section>
   </main>
+
+  <footer class="text-center py-6 text-xs text-slate-400 mt-8">
+    SeñorTendero &copy; 2026 &bull; Hecho por **Carlos Andres Martinez Soto** &bull; Desarrollado en **GitHub** 🇨🇴
+  </footer>
 
   <script type="module" src="app.js"></script>
 </body>
