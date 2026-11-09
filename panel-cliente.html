@@ -2,51 +2,81 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Mi Cuenta - SeñorTendero</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
-<body class="antialiased p-4 sm:p-8 flex flex-col justify-between min-h-screen">
+<body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
-  <main class="w-full max-w-md mx-auto space-y-6">
-    <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
-      <div>
-        <h1 class="text-lg font-extrabold text-slate-900" id="nombre-cliente-saludo">Mi Cuenta</h1>
-        <p class="text-xs text-slate-500">Estado de cuenta en la tienda</p>
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 bg-blue-600 text-white rounded-xl">
+        <i data-lucide="wallet" class="w-5 h-5"></i>
       </div>
-      <button id="btn-logout" class="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Salir</button>
-    </header>
+      <div>
+        <h1 class="font-extrabold text-slate-800 text-base" id="nombre-cliente-saludo">Bienvenido</h1>
+        <p class="text-xs text-slate-400">Estado de cuenta en la tienda</p>
+      </div>
+    </div>
+    <button id="btn-logout" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold px-3 py-2 rounded-xl transition border border-rose-200">
+      Salir
+    </button>
+  </header>
 
-    <!-- Saldo Personal -->
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg text-center">
-      <p class="text-xs font-bold uppercase text-blue-100">Total que Debes en la Tienda</p>
-      <p id="mi-deuda" class="text-4xl font-black mt-2">$0</p>
+  <!-- Contenido Principal -->
+  <main class="max-w-md w-full mx-auto p-4 md:p-6 space-y-6 my-auto">
+    
+    <!-- Tarjeta de Deuda Total -->
+    <div class="bg-blue-600 text-white p-6 rounded-3xl shadow-lg text-center space-y-2">
+      <p class="text-xs text-blue-100 uppercase tracking-widest font-bold">Total que debes en la tienda</p>
+      <h2 id="mi-deuda" class="text-4xl font-black">$0</h2>
     </div>
 
-    <!-- Tus Movimientos -->
-    <section class="bg-white/90 p-6 rounded-3xl shadow-sm border">
-      <h2 class="text-sm font-bold text-slate-800 uppercase mb-4">Tus Movimientos (Fiados y Abonos)</h2>
+    <!-- Tabla / Lista de Movimientos -->
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tus Movimientos (Fiados y Abonos)</h3>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead>
-            <tr class="border-b text-slate-400 text-xs uppercase">
+            <tr class="border-b text-xs text-slate-400 uppercase">
               <th class="pb-2">Fecha</th>
               <th class="pb-2">Detalle</th>
               <th class="pb-2 text-right">Valor</th>
             </tr>
           </thead>
-          <tbody id="tabla-cliente" class="divide-y"></tbody>
+          <tbody id="tabla-cliente">
+            <tr>
+              <td colspan="3" class="py-4 text-center text-xs text-slate-400">Cargando estado de cuenta...</td>
+            </tr>
+          </tbody>
         </table>
       </div>
-    </section>
+    </div>
+
   </main>
 
-  <footer class="text-center py-6 text-xs text-slate-400 mt-8">
-    SeñorTendero &copy; 2026 &bull; Hecho por **Carlos Andres Martinez Soto** &bull; Desarrollado en **GitHub** 🇨🇴
+  <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-100">
+    SeñorTendero © 2026 • Desarrollado con Firebase
   </footer>
 
   <script type="module" src="app.js"></script>
+  <script>
+    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+  </script>
 </body>
 </html>
