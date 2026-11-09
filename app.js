@@ -20,9 +20,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Definimos las credenciales fijas del Vendedor (Panel exclusivo de la tienda)
+// Credenciales fijas del Vendedor
 const VENDEDOR_USER = "tendero";
-const VENDEDOR_PASS = "admin123"; // Puedes cambiar la contraseña del tendero aquí
+const VENDEDOR_PASS = "admin123"; 
 
 // 1. LÓGICA DE LOGIN (index.html)
 const formLogin = document.getElementById("form-login");
@@ -33,14 +33,12 @@ if (formLogin) {
     const passwordIngresado = document.getElementById("password").value.trim();
     const errorMsg = document.getElementById("error-msg");
 
-    // Verificar si es el tendero
     if (usuarioIngresado === VENDEDOR_USER && passwordIngresado === VENDEDOR_PASS) {
       localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "tendero", usuario: "tendero" }));
       window.location.href = "panel-tendero.html";
       return;
     }
 
-    // Si no es el tendero, buscar en la base de datos si existe el cliente con su clave única
     const clientesRef = ref(db, 'clientes_tienda');
     onValue(clientesRef, (snapshot) => {
       const clientes = snapshot.val() || {};
@@ -54,7 +52,6 @@ if (formLogin) {
       });
 
       if (clienteEncontrado) {
-        // Guardar sesión del cliente en el navegador
         localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "cliente", nombre: clienteEncontrado.nombre }));
         window.location.href = "panel-cliente.html";
       } else {
@@ -65,7 +62,7 @@ if (formLogin) {
   });
 }
 
-// Botón de Cerrar Sesión (Común para ambos paneles)
+// Botón de Cerrar Sesión
 const btnLogout = document.getElementById("btn-logout");
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
@@ -80,13 +77,11 @@ const selectClienteFiado = document.getElementById("select-cliente-fiado");
 const formFiado = document.getElementById("form-fiado");
 
 if (formCrearCliente) {
-  // Validar si hay sesión de tendero activa
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
   if (!sesion || sesion.tipo !== "tendero") {
     window.location.href = "index.html";
   }
 
-  // Crear cuenta de cliente con clave única
   formCrearCliente.addEventListener("submit", (e) => {
     e.preventDefault();
     const nombre = document.getElementById("nuevo-nombre").value.trim();
@@ -100,7 +95,6 @@ if (formCrearCliente) {
     formCrearCliente.reset();
   });
 
-  // Cargar lista de clientes en el selector de fiados
   onValue(ref(db, 'clientes_tienda'), (snapshot) => {
     const clientes = snapshot.val() || {};
     if (selectClienteFiado) {
@@ -112,7 +106,6 @@ if (formCrearCliente) {
     }
   });
 
-  // Registrar nuevo fiado a un cliente
   if (formFiado) {
     formFiado.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -129,7 +122,6 @@ if (formCrearCliente) {
     });
   }
 
-  // Mostrar historial general de la tienda al tendero
   onValue(ref(db, 'fiados_tienda'), (snapshot) => {
     const data = snapshot.val() || {};
     const tbody = document.getElementById("tabla-tendero");
@@ -150,7 +142,7 @@ if (formCrearCliente) {
   });
 }
 
-// 3. LÓGICA DEL PANEL DEL CLIENTE/FAMILIA (panel-cliente.html)
+// 3. LÓGICA DEL PANEL DEL CLIENTE (panel-cliente.html)
 const tablaCliente = document.getElementById("tabla-cliente");
 if (tablaCliente) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
@@ -160,7 +152,6 @@ if (tablaCliente) {
     document.getElementById("nombre-cliente-saludo").textContent = `Hola, ${sesion.nombre}`;
   }
 
-  // Cargar exclusivamente los movimientos de este cliente
   onValue(ref(db, 'fiados_tienda'), (snapshot) => {
     const data = snapshot.val() || {};
     tablaCliente.innerHTML = "";
@@ -168,7 +159,6 @@ if (tablaCliente) {
 
     Object.keys(data).forEach(key => {
       const item = data[key];
-      // Compara si el registro pertenece al nombre del cliente logueado
       if (item.cliente === sesion.nombre) {
         miTotal += item.monto;
         tablaCliente.innerHTML += `
