@@ -1,10 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
 
+// TODO: Reemplaza con tus datos reales de la consola de Firebase
 const firebaseConfig = {
   apiKey: "TU_API_KEY",
   authDomain: "tu-proyecto.firebaseapp.com",
@@ -69,13 +70,15 @@ if (btnLogout) {
   });
 }
 
-// Variable global para rastrear qué cliente tiene abierto Don Carlos en su panel
+// Variables globales para el panel del tendero
 let clienteSeleccionadoParaEditar = null;
+let idFirebaseClienteSeleccionado = null;
 
 // 2. LÓGICA DEL PANEL DEL TENDERO
 const formCrearCliente = document.getElementById("form-crear-cliente");
 const listaClientesTendero = document.getElementById("lista-clientes-tendero");
 const formFiadoIndividual = document.getElementById("form-fiado-individual");
+const btnEliminarCuenta = document.getElementById("btn-eliminar-cuenta");
 
 if (formCrearCliente) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
@@ -123,17 +126,40 @@ if (formCrearCliente) {
 
         divCliente.addEventListener("click", () => {
           clienteSeleccionadoParaEditar = c.nombre;
+          idFirebaseClienteSeleccionado = key;
           document.getElementById("sin-seleccion").classList.add("hidden");
           document.getElementById("panel-cliente-activo").classList.remove("hidden");
           document.getElementById("titulo-cliente-activo").textContent = c.nombre;
-          // Refrescar lista para marcar el seleccionado
-          onValue(ref(db, 'clientes_tienda'), () => {}, { onlyOnce: true }); // Dispara actualización visual
+          
+          onValue(ref(db, 'clientes_tienda'), () => {}, { onlyOnce: true });
         });
 
         listaClientesTendero.appendChild(divCliente);
       });
     }
   });
+
+  // Botón para eliminar la cuenta seleccionada
+  if (btnEliminarCuenta) {
+    btnEliminarCuenta.addEventListener("click", () => {
+      if (!clienteSeleccionadoParaEditar || !idFirebaseClienteSeleccionado) return;
+
+      const confirmar = confirm(`¿Estás seguro de eliminar la cuenta de ${clienteSeleccionadoParaEditar}? Se borrará su acceso y todo su historial.`);
+      if (confirmar) {
+        remove(ref(db, `clientes_tienda/${idFirebaseClienteSeleccionado}`))
+          .then(() => {
+            alert("Cuenta eliminada con éxito.");
+            clienteSeleccionadoParaEditar = null;
+            idFirebaseClienteSeleccionado = null;
+            document.getElementById("sin-seleccion").classList.remove("hidden");
+            document.getElementById("panel-cliente-activo").classList.add("hidden");
+          })
+          .catch((error) => {
+            alert("Hubo un error al eliminar la cuenta: " + error.message);
+          });
+      }
+    });
+  }
 
   // Registrar transacción (fiado o abono) exclusivamente al cliente abierto
   if (formFiadoIndividual) {
@@ -165,7 +191,7 @@ if (formCrearCliente) {
     });
   }
 
-  // Escuchar en tiempo real los movimientos del cliente que Don Carlos tiene abierto en pantalla
+  // Escuchar en tiempo real los movimientos del cliente abierto
   onValue(ref(db, 'fiados_tienda'), (snapshot) => {
     const data = snapshot.val() || {};
     const tbody = document.getElementById("tabla-cliente-activo");
