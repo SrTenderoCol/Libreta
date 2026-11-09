@@ -5,7 +5,7 @@ if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
 
-// TODO: Reemplaza con tus datos reales de la consola de Firebase
+// TODO: Reemplaza con tus datos reales de la consola de Firebase si aún no lo has hecho
 const firebaseConfig = {
   apiKey: "TU_API_KEY",
   authDomain: "tu-proyecto.firebaseapp.com",
@@ -80,33 +80,41 @@ const listaClientesTendero = document.getElementById("lista-clientes-tendero");
 const formFiadoIndividual = document.getElementById("form-fiado-individual");
 const btnEliminarCuenta = document.getElementById("btn-eliminar-cuenta");
 
-if (formCrearCliente) {
+// Verificamos si estamos en la vista del tendero
+if (window.location.pathname.includes("panel-tendero.html") || listaClientesTendero) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
   if (!sesion || sesion.tipo !== "tendero") {
     window.location.href = "index.html";
   }
 
-  // Crear cliente nuevo
-  formCrearCliente.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const nombre = document.getElementById("nuevo-nombre").value.trim();
-    const usuario = document.getElementById("nuevo-user").value.trim().toLowerCase();
-    const password = document.getElementById("nuevo-pass").value.trim();
+  // A. Crear cliente nuevo
+  if (formCrearCliente) {
+    formCrearCliente.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nuevo-nombre").value.trim();
+      const usuario = document.getElementById("nuevo-user").value.trim().toLowerCase();
+      const password = document.getElementById("nuevo-pass").value.trim();
 
-    const nuevoClienteRef = push(ref(db, 'clientes_tienda'));
-    set(nuevoClienteRef, { nombre, usuario, password });
+      const nuevoClienteRef = push(ref(db, 'clientes_tienda'));
+      set(nuevoClienteRef, { nombre, usuario, password })
+        .then(() => {
+          alert(`¡Cuenta creada con éxito para ${nombre}!`);
+          formCrearCliente.reset();
+        })
+        .catch((error) => {
+          alert("Error al crear cuenta: " + error.message);
+        });
+    });
+  }
 
-    alert(`¡Cuenta creada con éxito para ${nombre}!`);
-    formCrearCliente.reset();
-  });
-
-  // Renderizar la lista de clientes a la izquierda
+  // B. Cargar y escuchar la lista de clientes en tiempo real
   onValue(ref(db, 'clientes_tienda'), (snapshot) => {
     const clientes = snapshot.val() || {};
     if (listaClientesTendero) {
       listaClientesTendero.innerHTML = "";
+      
       if (Object.keys(clientes).length === 0) {
-        listaClientesTendero.innerHTML = `<p class="text-xs text-slate-400">No hay clientes creados.</p>`;
+        listaClientesTendero.innerHTML = `<p class="text-xs text-slate-400 p-2">No hay clientes creados.</p>`;
         return;
       }
 
@@ -131,6 +139,7 @@ if (formCrearCliente) {
           document.getElementById("panel-cliente-activo").classList.remove("hidden");
           document.getElementById("titulo-cliente-activo").textContent = c.nombre;
           
+          // Forzar redibujado para reflejar selección
           onValue(ref(db, 'clientes_tienda'), () => {}, { onlyOnce: true });
         });
 
@@ -139,7 +148,7 @@ if (formCrearCliente) {
     }
   });
 
-  // Botón para eliminar la cuenta seleccionada
+  // C. Botón para eliminar la cuenta seleccionada
   if (btnEliminarCuenta) {
     btnEliminarCuenta.addEventListener("click", () => {
       if (!clienteSeleccionadoParaEditar || !idFirebaseClienteSeleccionado) return;
@@ -161,7 +170,7 @@ if (formCrearCliente) {
     });
   }
 
-  // Registrar transacción (fiado o abono) exclusivamente al cliente abierto
+  // D. Registrar transacción (fiado o abono) exclusivamente al cliente abierto
   if (formFiadoIndividual) {
     formFiadoIndividual.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -191,7 +200,7 @@ if (formCrearCliente) {
     });
   }
 
-  // Escuchar en tiempo real los movimientos del cliente abierto
+  // E. Escuchar en tiempo real los movimientos del cliente abierto
   onValue(ref(db, 'fiados_tienda'), (snapshot) => {
     const data = snapshot.val() || {};
     const tbody = document.getElementById("tabla-cliente-activo");
