@@ -91,6 +91,20 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     window.location.href = "index.html";
   }
 
+  // Generador automático del Código QR usando tu enlace exacto
+  const contenedorQr = document.getElementById("qrcode");
+  if (contenedorQr && typeof QRCode !== 'undefined') {
+    contenedorQr.innerHTML = "";
+    new QRCode(contenedorQr, {
+      text: "https://srtenderocol.github.io/Libreta",
+      width: 128,
+      height: 128,
+      colorDark: "#1e293b",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+
   if (formCrearCliente) {
     formCrearCliente.addEventListener("submit", (e) => {
       e.preventDefault();
