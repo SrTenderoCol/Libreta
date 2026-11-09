@@ -67,7 +67,7 @@
         </form>
       </div>
 
-      <!-- ESTA ES LA TARJETA DEL QR QUE FALTABA -->
+      <!-- TARJETA DEL CÓDIGO QR -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center space-y-3">
         <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1">
           <i data-lucide="qr-code" class="w-4 h-4"></i> QR Acceso Clientes
@@ -154,8 +154,25 @@
   </footer>
 
   <script type="module" src="app.js"></script>
+  
+  <!-- Script seguro para generar el QR -->
   <script>
     if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const contenedorQr = document.getElementById("qrcode");
+      if (contenedorQr && typeof QRCode !== 'undefined') {
+        contenedorQr.innerHTML = "";
+        new QRCode(contenedorQr, {
+          text: "https://srtenderocol.github.io/Libreta",
+          width: 128,
+          height: 128,
+          colorDark: "#1e293b",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      }
+    });
   </script>
 </body>
 </html>
