@@ -11,8 +11,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Librería automática de QR -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
@@ -67,13 +65,17 @@
         </form>
       </div>
 
-      <!-- TARJETA DEL CÓDIGO QR -->
+      <!-- TARJETA DEL CÓDIGO QR DIRECTO -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center space-y-3">
         <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1">
           <i data-lucide="qr-code" class="w-4 h-4"></i> QR Acceso Clientes
         </h2>
         <p class="text-xs text-slate-500">Escanea para ir al Inicio de Sesión:</p>
-        <div id="qrcode" class="flex justify-center p-2 bg-slate-50 border rounded-xl"></div>
+        
+        <div class="flex justify-center p-2 bg-slate-50 border rounded-xl">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://srtenderocol.github.io/Libreta" alt="QR Acceso" class="w-32 h-32 rounded-lg shadow-sm">
+        </div>
+
         <p class="text-[10px] text-slate-400">Apunta la cámara del celular aquí</p>
       </div>
     </div>
@@ -154,25 +156,8 @@
   </footer>
 
   <script type="module" src="app.js"></script>
-  
-  <!-- Script seguro para generar el QR -->
   <script>
     if (typeof lucide !== 'undefined') { lucide.createIcons(); }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const contenedorQr = document.getElementById("qrcode");
-      if (contenedorQr && typeof QRCode !== 'undefined') {
-        contenedorQr.innerHTML = "";
-        new QRCode(contenedorQr, {
-          text: "https://srtenderocol.github.io/Libreta",
-          width: 128,
-          height: 128,
-          colorDark: "#1e293b",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H
-        });
-      }
-    });
   </script>
 </body>
 </html>
