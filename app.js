@@ -5,15 +5,16 @@ if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
 
-// TODO: Reemplaza con tus credenciales reales de Firebase
+// Credenciales reales de Firebase del proyecto Srtendero
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.appspot.com",
-  messagingSenderId: "tu_sender",
-  appId: "tu_app"
+  apiKey: "AIzaSyDnZ_hVN2l3F6yGsC5LwtVXqEVsq6tCqUc",
+  authDomain: "srtendero2026.firebaseapp.com",
+  databaseURL: "https://srtendero2026-default-rtdb.firebaseio.com",
+  projectId: "srtendero2026",
+  storageBucket: "srtendero2026.firebasestorage.app",
+  messagingSenderId: "248215273556",
+  appId: "1:248215273556:web:08f40a5f6365f7982fadc1",
+  measurementId: "G-MH8LBL0P2V"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -86,7 +87,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     window.location.href = "index.html";
   }
 
-  // A. Crear cliente nuevo
+  // A. Crear cliente nuevo con saldo en ceros por defecto
   if (formCrearCliente) {
     formCrearCliente.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -94,8 +95,19 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
       const usuario = document.getElementById("nuevo-user").value.trim().toLowerCase();
       const password = document.getElementById("nuevo-pass").value.trim();
 
+      if (!nombre || !usuario || !password) {
+        alert("Por favor completa todos los campos.");
+        return;
+      }
+
       const nuevoClienteRef = push(ref(db, 'clientes_tienda'));
-      set(nuevoClienteRef, { nombre, usuario, password, deudaActual: 0, conceptoActual: "Al día (Sin deudas)" })
+      set(nuevoClienteRef, { 
+        nombre, 
+        usuario, 
+        password, 
+        deudaActual: 0, 
+        conceptoActual: "Al día (Sin deudas)" 
+      })
         .then(() => {
           alert(`¡Cuenta creada con éxito para ${nombre}!`);
           formCrearCliente.reset();
@@ -106,7 +118,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     });
   }
 
-  // B. Cargar la lista de clientes
+  // B. Cargar la lista de clientes en tiempo real
   onValue(ref(db, 'clientes_tienda'), (snapshot) => {
     const clientes = snapshot.val() || {};
     if (listaClientesTendero) {
@@ -120,7 +132,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
       Object.keys(clientes).forEach(key => {
         const c = clientes[key];
         const activoClase = clienteSeleccionadoParaEditar === c.nombre ? "bg-blue-50 border-blue-500 text-blue-700 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700";
-        const deudaTxt = c.deudaActual ? `$${c.deudaActual.toLocaleString("es-CO")}` : "$0";
+        const deudaTxt = c.deudaActual !== undefined ? `$${c.deudaActual.toLocaleString("es-CO")}` : "$0";
         
         const divCliente = document.createElement("div");
         divCliente.className = `p-3 rounded-xl border text-sm cursor-pointer transition flex justify-between items-center ${activoClase}`;
@@ -159,14 +171,14 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
             alert("Cuenta eliminada con éxito.");
             clienteSeleccionadoParaEditar = null;
             idFirebaseClienteSeleccionado = null;
-            document.getElementById("sin-seleccion").classList.add("hidden");
+            document.getElementById("sin-seleccion").classList.remove("hidden");
             document.getElementById("panel-cliente-activo").classList.add("hidden");
           });
       }
     });
   }
 
-  // D. Registrar transacción actual (Suma si es fiado, resta o limpia si es abono)
+  // D. Registrar transacción (Suma si es fiado, descuenta/limpia si es abono)
   if (formFiadoIndividual) {
     formFiadoIndividual.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -179,7 +191,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
       const conceptoInput = document.getElementById("concepto").value.trim();
       const montoInput = parseFloat(document.getElementById("monto").value);
 
-      // Consultamos el estado actual del cliente en Firebase para hacer el cálculo exacto
       const clienteRef = ref(db, `clientes_tienda/${idFirebaseClienteSeleccionado}`);
       onValue(clienteRef, (snapshot) => {
         const datosCliente = snapshot.val() || {};
@@ -188,21 +199,18 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
         let nuevaDeuda = 0;
 
         if (tipo === "fiado") {
-          // Si es fiado, sumamos al presente
           nuevaDeuda = deudaActual + montoInput;
           nuevoConcepto = conceptoInput; 
         } else {
-          // Si es abono o pago
           nuevaDeuda = deudaActual - montoInput;
           if (nuevaDeuda <= 0) {
             nuevaDeuda = 0;
             nuevoConcepto = "¡Cuenta al día / Pagado!";
           } else {
-            nuevoConcepto = `Abono de $${montoInput.toLocaleString("es-CO")} (${conceptoInput})`;
+            nuevoConcepto = `Abono: ${conceptoInput} (Resta $${nuevaDeuda.toLocaleString("es-CO")})`;
           }
         }
 
-        // Actualizamos directamente el registro limpio del presente en Firebase
         update(clienteRef, {
           deudaActual: nuevaDeuda,
           conceptoActual: nuevoConcepto,
@@ -218,7 +226,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     });
   }
 
-  // E. Mostrar únicamente el estado presente en el panel del tendero
+  // E. Mostrar estado actual en el panel del tendero
   onValue(ref(db, `clientes_tienda`), (snapshot) => {
     const clientes = snapshot.val() || {};
     const tbody = document.getElementById("tabla-cliente-activo");
@@ -242,7 +250,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
   });
 }
 
-// 3. LÓGICA DEL PANEL DEL CLIENTE (Muestra solo su saldo actual y concepto limpio)
+// 3. LÓGICA DEL PANEL DEL CLIENTE
 const tablaCliente = document.getElementById("tabla-cliente");
 if (tablaCliente) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
