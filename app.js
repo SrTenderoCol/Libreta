@@ -53,7 +53,6 @@ if (formLogin) {
       });
 
       if (datosCliente) {
-        // Guardamos tanto el nombre real del tendero como su llave única en Firebase para enlazarlos sin fallo
         const nombreFinal = datosCliente.nombre;
         localStorage.setItem("sesion_activo", JSON.stringify({ 
           tipo: "cliente", 
@@ -248,7 +247,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
   });
 }
 
-// 3. LÓGICA DEL PANEL DEL CLIENTE (Enlazado directamente por Firebase Key)
+// 3. LÓGICA DEL PANEL DEL CLIENTE
 const tablaCliente = document.getElementById("tabla-cliente");
 if (tablaCliente) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
@@ -258,7 +257,6 @@ if (tablaCliente) {
     document.getElementById("nombre-cliente-saludo").textContent = `Bienvenido, ${sesion.nombre}`;
   }
 
-  // Consultamos directamente el nodo exacto del cliente en Firebase usando su llave única
   if (sesion && sesion.firebaseKey) {
     onValue(ref(db, `clientes_tienda/${sesion.firebaseKey}`), (snapshot) => {
       const c = snapshot.val() || {};
