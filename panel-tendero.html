@@ -11,6 +11,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Librería automática de QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
@@ -62,6 +64,16 @@
             Crear Cuenta
           </button>
         </form>
+      </div>
+
+      <!-- TARJETA DEL CÓDIGO QR FIJO CON TU LINK -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center space-y-3">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-center gap-1">
+          <i data-lucide="qr-code" class="w-4 h-4"></i> QR Acceso Clientes
+        </h2>
+        <p class="text-xs text-slate-500">Escanea para ir al Inicio de Sesión:</p>
+        <div id="qrcode" class="flex justify-center p-2 bg-slate-50 border rounded-xl"></div>
+        <p class="text-[10px] text-slate-400">Apunta la cámara del celular aquí</p>
       </div>
     </div>
 
