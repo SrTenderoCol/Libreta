@@ -9,20 +9,11 @@
   <meta name="theme-color" content="#2563eb">
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
-
-  <style>
-    html, body {
-      overflow-x: hidden;
-      max-width: 100vw;
-      margin: 0;
-      padding: 0;
-    }
-  </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
-  <!-- Header -->
   <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
     <div class="flex items-center space-x-3">
       <div class="p-2 bg-blue-600 text-white rounded-xl">
@@ -38,10 +29,8 @@
     </button>
   </header>
 
-  <!-- Contenido Principal -->
   <main class="max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6 my-auto">
     
-    <!-- Columna Izquierda: Lista de Cuentas y Crear Cliente -->
     <div class="space-y-6">
       <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
@@ -76,7 +65,6 @@
       </div>
     </div>
 
-    <!-- Columna Derecha: Panel Activo del Cliente Seleccionado -->
     <div class="md:col-span-2 space-y-6">
       <div id="sin-seleccion" class="bg-white p-12 rounded-2xl border border-slate-200 text-center shadow-sm">
         <i data-lucide="arrow-left-circle" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
@@ -85,7 +73,6 @@
       </div>
 
       <div id="panel-cliente-activo" class="hidden space-y-6">
-        <!-- Tarjeta de Deuda Total -->
         <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-md flex justify-between items-center">
           <div>
             <p class="text-xs text-blue-100 uppercase tracking-wider font-semibold">Cuenta Activa</p>
@@ -100,7 +87,6 @@
           </button>
         </div>
 
-        <!-- Formulario para Registrar Transacción -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
             <i data-lucide="file-text" class="w-4 h-4"></i> Registrar Transacción para este cliente
@@ -127,7 +113,6 @@
           </form>
         </div>
 
-        <!-- Historial / Estado Actual -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Historial de Movimientos de la Cuenta</h3>
           <div class="overflow-x-auto">
