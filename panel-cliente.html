@@ -8,13 +8,13 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="antialiased p-4 sm:p-8">
+<body class="antialiased p-4 sm:p-8 flex flex-col justify-between min-h-screen">
 
   <main class="w-full max-w-md mx-auto space-y-6">
     <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
       <div>
-        <h1 class="text-lg font-extrabold text-slate-900">👤 Mi Estado de Cuenta</h1>
-        <p id="user-email" class="text-xs text-slate-500">Cargando...</p>
+        <h1 class="text-lg font-extrabold text-slate-900" id="nombre-cliente-saludo">Mi Cuenta</h1>
+        <p class="text-xs text-slate-500">Estado de cuenta en la tienda</p>
       </div>
       <button id="btn-logout" class="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Salir</button>
     </header>
@@ -42,6 +42,10 @@
       </div>
     </section>
   </main>
+
+  <footer class="text-center py-6 text-xs text-slate-400 mt-8">
+    SeñorTendero &copy; 2026 &bull; Hecho por **Carlos Andres Martinez Soto** &bull; Desarrollado en **GitHub** 🇨🇴
+  </footer>
 
   <script type="module" src="app.js"></script>
 </body>
