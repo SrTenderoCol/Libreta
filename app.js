@@ -1,8 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://firebase.google.com/..."; // (Usa los CDN oficiales de Firebase Auth y Database)
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// REEMPLAZA CON TUS CREDENCIALES REALES DE FIREBASE
+// Inicializar íconos visuales
+if (typeof lucide !== 'undefined') {
+  lucide.createIcons();
+}
+
+// TODO: Reemplaza con tus datos reales de la consola de Firebase
 const firebaseConfig = {
   apiKey: "TU_API_KEY",
   authDomain: "tu-proyecto.firebaseapp.com",
@@ -14,147 +18,168 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getDatabase(app);
 
-// Configura aquí el correo exacto del vendedor autorizado (ej: el correo de tu amigo)
-const CORREO_VENDEDOR_UNICO = "amigotendero@gmail.com"; 
+// Definimos las credenciales fijas del Vendedor (Panel exclusivo de la tienda)
+const VENDEDOR_USER = "tendero";
+const VENDEDOR_PASS = "admin123"; // Puedes cambiar la contraseña del tendero aquí
 
-let modoRegistro = false;
-
-window.cambiarTab = function(tipo) {
-  modoRegistro = (tipo === 'registro');
-  const btnLogin = document.getElementById("tab-login");
-  const btnRegistro = document.getElementById("tab-registro");
-  const btnSubmit = document.getElementById("btn-submit");
-
-  if (modoRegistro) {
-    btnRegistro.className = "flex-1 py-2 rounded-lg font-semibold text-xs bg-blue-600 text-white shadow transition";
-    btnLogin.className = "flex-1 py-2 rounded-lg font-semibold text-xs text-slate-600 transition";
-    btnSubmit.textContent = "Registrarme como Cliente";
-  } else {
-    btnLogin.className = "flex-1 py-2 rounded-lg font-semibold text-xs bg-blue-600 text-white shadow transition";
-    btnRegistro.className = "flex-1 py-2 rounded-lg font-semibold text-xs text-slate-600 transition";
-    btnSubmit.textContent = "Ingresar";
-  }
-}
-
-// Manejo del formulario de Login / Registro en index.html
-const formAuth = document.getElementById("form-auth");
-if (formAuth) {
-  formAuth.addEventListener("submit", async (e) => {
+// 1. LÓGICA DE LOGIN (index.html)
+const formLogin = document.getElementById("form-login");
+if (formLogin) {
+  formLogin.addEventListener("submit", (e) => {
     e.preventDefault();
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    const usuarioIngresado = document.getElementById("usuario").value.trim().toLowerCase();
+    const passwordIngresado = document.getElementById("password").value.trim();
     const errorMsg = document.getElementById("error-msg");
 
-    try {
-      if (modoRegistro) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        alert("¡Registro exitoso!");
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-      }
-
-      // Redirección inteligente según el rol
-      if (email === CORREO_VENDEDOR_UNICO) {
-        window.location.href = "panel-tendero.html";
-      } else {
-        window.location.href = "panel-cliente.html";
-      }
-    } catch (error) {
-      errorMsg.textContent = "Error: " + error.message;
-      errorMsg.classList.remove("hidden");
+    // Verificar si es el tendero
+    if (usuarioIngresado === VENDEDOR_USER && passwordIngresado === VENDEDOR_PASS) {
+      localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "tendero", usuario: "tendero" }));
+      window.location.href = "panel-tendero.html";
+      return;
     }
+
+    // Si no es el tendero, buscar en la base de datos si existe el cliente con su clave única
+    const clientesRef = ref(db, 'clientes_tienda');
+    onValue(clientesRef, (snapshot) => {
+      const clientes = snapshot.val() || {};
+      let clienteEncontrado = null;
+
+      Object.keys(clientes).forEach(key => {
+        const c = clientes[key];
+        if (c.usuario.toLowerCase() === usuarioIngresado && c.password === passwordIngresado) {
+          clienteEncontrado = c;
+        }
+      });
+
+      if (clienteEncontrado) {
+        // Guardar sesión del cliente en el navegador
+        localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "cliente", nombre: clienteEncontrado.nombre }));
+        window.location.href = "panel-cliente.html";
+      } else {
+        errorMsg.textContent = "Usuario o contraseña incorrectos.";
+        errorMsg.classList.remove("hidden");
+      }
+    }, { onlyOnce: true });
   });
 }
 
-// Control de botones de cerrar sesión
+// Botón de Cerrar Sesión (Común para ambos paneles)
 const btnLogout = document.getElementById("btn-logout");
 if (btnLogout) {
-  btnLogout.addEventListener("click", async () => {
-    await signOut(auth);
+  btnLogout.addEventListener("click", () => {
+    localStorage.removeItem("sesion_activo");
     window.location.href = "index.html";
   });
 }
 
-// Lógica exclusiva del panel del vendedor
+// 2. LÓGICA DEL PANEL DEL TENDERO (panel-tendero.html)
+const formCrearCliente = document.getElementById("form-crear-cliente");
+const selectClienteFiado = document.getElementById("select-cliente-fiado");
 const formFiado = document.getElementById("form-fiado");
-if (formFiado) {
-  onAuthStateChanged(auth, (user) => {
-    if (!user || user.email !== CORREO_VENDEDOR_UNICO) {
-      window.location.href = "index.html"; // Bloquea si no es el tendero
+
+if (formCrearCliente) {
+  // Validar si hay sesión de tendero activa
+  const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
+  if (!sesion || sesion.tipo !== "tendero") {
+    window.location.href = "index.html";
+  }
+
+  // Crear cuenta de cliente con clave única
+  formCrearCliente.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const nombre = document.getElementById("nuevo-nombre").value.trim();
+    const usuario = document.getElementById("nuevo-user").value.trim().toLowerCase();
+    const password = document.getElementById("nuevo-pass").value.trim();
+
+    const nuevoClienteRef = push(ref(db, 'clientes_tienda'));
+    set(nuevoClienteRef, { nombre, usuario, password });
+
+    alert(`¡Cuenta creada con éxito para ${nombre}!\nUsuario: ${usuario}\nClave: ${password}`);
+    formCrearCliente.reset();
+  });
+
+  // Cargar lista de clientes en el selector de fiados
+  onValue(ref(db, 'clientes_tienda'), (snapshot) => {
+    const clientes = snapshot.val() || {};
+    if (selectClienteFiado) {
+      selectClienteFiado.innerHTML = `<option value="">-- Selecciona un cliente --</option>`;
+      Object.keys(clientes).forEach(key => {
+        const c = clientes[key];
+        selectClienteFiado.innerHTML += `<option value="${c.nombre}">${c.nombre} (Usuario: ${c.usuario})</option>`;
+      });
     }
   });
 
-  formFiado.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const cliente = document.getElementById("cliente-nombre").value.trim();
-    const concepto = document.getElementById("concepto").value.trim();
-    const monto = parseFloat(document.getElementById("monto").value);
-    
-    const fechaHora = new Date().toLocaleString("es-CO");
-    push(ref(db, 'fiados_tienda'), { cliente, concepto, monto, fechaHora });
-    formFiado.reset();
-  });
+  // Registrar nuevo fiado a un cliente
+  if (formFiado) {
+    formFiado.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const cliente = document.getElementById("select-cliente-fiado").value;
+      const concepto = document.getElementById("concepto").value.trim();
+      const monto = parseFloat(document.getElementById("monto").value);
+      const fechaHora = new Date().toLocaleString("es-CO", {
+        year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+      });
 
-  // Cargar datos en el panel del tendero
+      push(ref(db, 'fiados_tienda'), { cliente, concepto, monto, fechaHora });
+      formFiado.reset();
+      alert("¡Fiado registrado con éxito!");
+    });
+  }
+
+  // Mostrar historial general de la tienda al tendero
   onValue(ref(db, 'fiados_tienda'), (snapshot) => {
     const data = snapshot.val() || {};
     const tbody = document.getElementById("tabla-tendero");
-    const totalCartera = document.getElementById("total-cartera");
-    tbody.innerHTML = "";
-    let total = 0;
-
-    Object.keys(data).forEach(key => {
-      const item = data[key];
-      total += item.monto;
-      tbody.innerHTML += `
-        <tr class="hover:bg-slate-50">
-          <td class="py-3 text-xs text-slate-500">${item.fechaHora}</td>
-          <td class="py-3 font-bold text-slate-800">${item.cliente}</td>
-          <td class="py-3 text-slate-600">${item.concepto}</td>
-          <td class="py-3 text-right font-extrabold text-blue-600">$${item.monto.toLocaleString("es-CO")}</td>
-        </tr>
-      `;
-    });
-    totalCartera.textContent = `$${total.toLocaleString("es-CO")}`;
+    if (tbody) {
+      tbody.innerHTML = "";
+      Object.keys(data).forEach(key => {
+        const item = data[key];
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 text-xs text-slate-500">${item.fechaHora}</td>
+            <td class="py-3 font-bold text-slate-800">${item.cliente}</td>
+            <td class="py-3 text-slate-600">${item.concepto}</td>
+            <td class="py-3 text-right font-extrabold text-blue-600">$${item.monto.toLocaleString("es-CO")}</td>
+          </tr>
+        `;
+      });
+    }
   });
 }
 
-// Lógica exclusiva del panel del cliente
+// 3. LÓGICA DEL PANEL DEL CLIENTE/FAMILIA (panel-cliente.html)
 const tablaCliente = document.getElementById("tabla-cliente");
 if (tablaCliente) {
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      window.location.href = "index.html";
-      return;
-    }
-    document.getElementById("user-email").textContent = user.email;
-    
-    // Filtramos los datos para que el cliente solo vea lo suyo usando su correo o nombre de usuario
-    onValue(ref(db, 'fiados_tienda'), (snapshot) => {
-      const data = snapshot.val() || {};
-      tablaCliente.innerHTML = "";
-      let miTotal = 0;
-      
-      // Asumimos que el cliente se registra y el tendero anota su nombre idéntico a la parte inicial de su correo (o puedes mapearlo)
-      const nombreClienteIdentificador = user.email.split("@")[0].toLowerCase();
+  const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
+  if (!sesion || sesion.tipo !== "cliente") {
+    window.location.href = "index.html";
+  } else {
+    document.getElementById("nombre-cliente-saludo").textContent = `Hola, ${sesion.nombre}`;
+  }
 
-      Object.keys(data).forEach(key => {
-        const item = data[key];
-        if (item.cliente.toLowerCase().includes(nombreClienteIdentificador)) {
-          miTotal += item.monto;
-          tablaCliente.innerHTML += `
-            <tr class="hover:bg-slate-50">
-              <td class="py-3 text-xs text-slate-500">${item.fechaHora}</td>
-              <td class="py-3 text-slate-600">${item.concepto}</td>
-              <td class="py-3 text-right font-extrabold text-blue-600">$${item.monto.toLocaleString("es-CO")}</td>
-            </tr>
-          `;
-        }
-      });
-      document.getElementById("mi-deuda").textContent = `$${miTotal.toLocaleString("es-CO")}`;
+  // Cargar exclusivamente los movimientos de este cliente
+  onValue(ref(db, 'fiados_tienda'), (snapshot) => {
+    const data = snapshot.val() || {};
+    tablaCliente.innerHTML = "";
+    let miTotal = 0;
+
+    Object.keys(data).forEach(key => {
+      const item = data[key];
+      // Compara si el registro pertenece al nombre del cliente logueado
+      if (item.cliente === sesion.nombre) {
+        miTotal += item.monto;
+        tablaCliente.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 text-xs text-slate-500">${item.fechaHora}</td>
+            <td class="py-3 text-slate-600">${item.concepto}</td>
+            <td class="py-3 text-right font-extrabold text-blue-600">$${item.monto.toLocaleString("es-CO")}</td>
+          </tr>
+        `;
+      }
     });
+    document.getElementById("mi-deuda").textContent = `$${miTotal.toLocaleString("es-CO")}`;
   });
 }
