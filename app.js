@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, get, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 if (typeof lucide !== 'undefined') {
   lucide.createIcons();
@@ -23,48 +23,76 @@ const VENDEDOR_USER = "tendero";
 const VENDEDOR_PASS = "admin123"; 
 
 // 1. LÓGICA DE LOGIN
+const ROLES_VENDEDOR = ["tendero", "vendedor"];
+
+function buscarCuenta(registros, usuario, password) {
+  for (const key of Object.keys(registros || {})) {
+    const c = registros[key];
+    if (!c || typeof c.usuario !== "string") continue;
+    if (c.usuario.trim().toLowerCase() === usuario && String(c.password).trim() === password) {
+      return { key, datos: c };
+    }
+  }
+  return null;
+}
+
+function entrarComoTendero(nombre, usuario) {
+  localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "tendero", usuario, nombre }));
+  window.location.href = "panel-tendero.html";
+}
+
 const formLogin = document.getElementById("form-login");
 if (formLogin) {
-  formLogin.addEventListener("submit", (e) => {
+  formLogin.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const nombreIngresado = document.getElementById("nombre-ingresado").value.trim();
     const usuarioIngresado = document.getElementById("usuario").value.trim().toLowerCase();
     const passwordIngresado = document.getElementById("password").value.trim();
     const errorMsg = document.getElementById("error-msg");
+    errorMsg.classList.add("hidden");
 
+    // a) Vendedor fijo (el de siempre)
     if (usuarioIngresado === VENDEDOR_USER && passwordIngresado === VENDEDOR_PASS) {
-      localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "tendero", usuario: "tendero" }));
-      window.location.href = "panel-tendero.html";
+      entrarComoTendero("Tendero", VENDEDOR_USER);
       return;
     }
 
-    const clientesRef = ref(db, 'clientes_tienda');
-    onValue(clientesRef, (snapshot) => {
-      const clientes = snapshot.val() || {};
-      let clienteEncontradoKey = null;
-      let datosCliente = null;
-
-      Object.keys(clientes).forEach(key => {
-        const c = clientes[key];
-        if (c.usuario.toLowerCase() === usuarioIngresado && c.password === passwordIngresado) {
-          clienteEncontradoKey = key;
-          datosCliente = c;
+    try {
+      // b) Vendedores creados en Firebase (nodo "vendedores_tienda")
+      try {
+        const snapV = await get(ref(db, "vendedores_tienda"));
+        const v = buscarCuenta(snapV.val(), usuarioIngresado, passwordIngresado);
+        if (v) {
+          entrarComoTendero(v.datos.nombre || v.datos.usuario, usuarioIngresado);
+          return;
         }
-      });
+      } catch (_) { /* si el nodo no existe o no hay permiso, seguimos */ }
 
-      if (datosCliente) {
-        const nombreFinal = datosCliente.nombre;
-        localStorage.setItem("sesion_activo", JSON.stringify({ 
-          tipo: "cliente", 
-          nombre: nombreFinal, 
-          firebaseKey: clienteEncontradoKey 
-        }));
-        window.location.href = "panel-cliente.html";
-      } else {
+      // c) Cuentas en "clientes_tienda": si tienen rol de vendedor van al panel del tendero
+      const snapC = await get(ref(db, "clientes_tienda"));
+      const hallado = buscarCuenta(snapC.val(), usuarioIngresado, passwordIngresado);
+
+      if (!hallado) {
         errorMsg.textContent = "Usuario o contraseña incorrectos.";
         errorMsg.classList.remove("hidden");
+        return;
       }
-    }, { onlyOnce: true });
+
+      const rol = String(hallado.datos.rol || hallado.datos.tipo || "").toLowerCase();
+      if (ROLES_VENDEDOR.includes(rol)) {
+        entrarComoTendero(hallado.datos.nombre || hallado.datos.usuario, usuarioIngresado);
+        return;
+      }
+
+      localStorage.setItem("sesion_activo", JSON.stringify({
+        tipo: "cliente",
+        nombre: hallado.datos.nombre,
+        firebaseKey: hallado.key
+      }));
+      window.location.href = "panel-cliente.html";
+    } catch (err) {
+      errorMsg.textContent = "No se pudo conectar. Revisa tu internet e intenta de nuevo.";
+      errorMsg.classList.remove("hidden");
+    }
   });
 }
 
@@ -89,6 +117,11 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
   if (!sesion || sesion.tipo !== "tendero") {
     window.location.href = "index.html";
+  }
+
+  const saludoTendero = document.getElementById("nombre-tendero-saludo");
+  if (saludoTendero && sesion && sesion.nombre) {
+    saludoTendero.textContent = `Bienvenido, ${sesion.nombre}`;
   }
 
   if (formCrearCliente) {
