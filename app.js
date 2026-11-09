@@ -36,8 +36,8 @@ function buscarCuenta(registros, usuario, password) {
   return null;
 }
 
-function entrarComoTendero(nombre, usuario) {
-  localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "tendero", usuario, nombre }));
+function entrarComoTendero(nombre, usuario, origen, firebaseKey) {
+  localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "tendero", usuario, nombre, origen, firebaseKey }));
   window.location.href = "panel-tendero.html";
 }
 
@@ -50,22 +50,24 @@ if (formLogin) {
     const errorMsg = document.getElementById("error-msg");
     errorMsg.classList.add("hidden");
 
-    // a) Vendedor fijo (el de siempre)
-    if (usuarioIngresado === VENDEDOR_USER && passwordIngresado === VENDEDOR_PASS) {
-      entrarComoTendero("Tendero", VENDEDOR_USER);
-      return;
-    }
-
     try {
-      // b) Vendedores creados en Firebase (nodo "vendedores_tienda")
+      // a) Vendedores guardados en Firebase (nodo "vendedores_tienda")
+      let vendedores = {};
       try {
-        const snapV = await get(ref(db, "vendedores_tienda"));
-        const v = buscarCuenta(snapV.val(), usuarioIngresado, passwordIngresado);
-        if (v) {
-          entrarComoTendero(v.datos.nombre || v.datos.usuario, usuarioIngresado);
-          return;
-        }
+        vendedores = (await get(ref(db, "vendedores_tienda"))).val() || {};
       } catch (_) { /* si el nodo no existe o no hay permiso, seguimos */ }
+
+      const v = buscarCuenta(vendedores, usuarioIngresado, passwordIngresado);
+      if (v) {
+        entrarComoTendero(v.datos.nombre || v.datos.usuario, usuarioIngresado, "vendedores", v.key);
+        return;
+      }
+
+      // b) Vendedor fijo: solo vale si NO ha cambiado su contraseña (si la cambió, queda en Firebase)
+      if (usuarioIngresado === VENDEDOR_USER && passwordIngresado === VENDEDOR_PASS && !vendedores[VENDEDOR_USER]) {
+        entrarComoTendero("Tendero", VENDEDOR_USER, "fijo", VENDEDOR_USER);
+        return;
+      }
 
       // c) Cuentas en "clientes_tienda": si tienen rol de vendedor van al panel del tendero
       const snapC = await get(ref(db, "clientes_tienda"));
@@ -79,7 +81,7 @@ if (formLogin) {
 
       const rol = String(hallado.datos.rol || hallado.datos.tipo || "").toLowerCase();
       if (ROLES_VENDEDOR.includes(rol)) {
-        entrarComoTendero(hallado.datos.nombre || hallado.datos.usuario, usuarioIngresado);
+        entrarComoTendero(hallado.datos.nombre || hallado.datos.usuario, usuarioIngresado, "clientes", hallado.key);
         return;
       }
 
@@ -122,6 +124,64 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
   const saludoTendero = document.getElementById("nombre-tendero-saludo");
   if (saludoTendero && sesion && sesion.nombre) {
     saludoTendero.textContent = `Bienvenido, ${sesion.nombre}`;
+  }
+
+  // CAMBIAR CONTRASEÑA DEL VENDEDOR
+  const formCambiarPass = document.getElementById("form-cambiar-pass");
+  if (formCambiarPass) {
+    formCambiarPass.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg-cambiar-pass");
+      const mostrar = (texto, ok) => {
+        msg.textContent = texto;
+        msg.className = "text-xs font-semibold text-center p-2 rounded-lg " +
+          (ok ? "text-emerald-600 bg-emerald-50" : "text-red-500 bg-red-50");
+      };
+
+      const actual = document.getElementById("pass-actual").value.trim();
+      const nueva = document.getElementById("pass-nueva").value.trim();
+      const confirmar = document.getElementById("pass-confirmar").value.trim();
+
+      if (nueva.length < 6) return mostrar("La nueva contraseña debe tener al menos 6 caracteres.", false);
+      if (nueva !== confirmar) return mostrar("La confirmación no coincide con la nueva contraseña.", false);
+      if (nueva === actual) return mostrar("La nueva contraseña debe ser diferente a la actual.", false);
+
+      const origen = sesion.origen || "fijo";
+      if (origen !== "fijo" && !sesion.firebaseKey) {
+        return mostrar("Cierra sesión y vuelve a entrar para poder cambiar la contraseña.", false);
+      }
+
+      try {
+        let refCuenta;
+        let passGuardada;
+
+        if (origen === "fijo") {
+          refCuenta = ref(db, `vendedores_tienda/${VENDEDOR_USER}`);
+          const snap = await get(refCuenta);
+          passGuardada = snap.exists() ? String(snap.val().password) : VENDEDOR_PASS;
+        } else {
+          const nodo = origen === "clientes" ? "clientes_tienda" : "vendedores_tienda";
+          refCuenta = ref(db, `${nodo}/${sesion.firebaseKey}`);
+          const snap = await get(refCuenta);
+          passGuardada = String((snap.val() || {}).password);
+        }
+
+        if (actual !== passGuardada) {
+          return mostrar("La contraseña actual no es correcta.", false);
+        }
+
+        if (origen === "fijo") {
+          await set(refCuenta, { nombre: "Tendero", usuario: VENDEDOR_USER, password: nueva });
+        } else {
+          await update(refCuenta, { password: nueva });
+        }
+
+        formCambiarPass.reset();
+        mostrar("¡Contraseña actualizada con éxito!", true);
+      } catch (err) {
+        mostrar("No se pudo cambiar la contraseña. Revisa tu conexión e intenta de nuevo.", false);
+      }
+    });
   }
 
   if (formCrearCliente) {
