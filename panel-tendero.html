@@ -13,18 +13,18 @@
   <main class="w-full max-w-5xl mx-auto space-y-6">
     <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
       <div>
-        <h1 class="text-xl font-extrabold text-slate-900">🛒 Panel del Tendero</h1>
-        <p class="text-xs text-slate-500">Administración de fiados y clientes</p>
+        <h1 class="text-xl font-extrabold text-slate-900">🛒 Bienvenido Don Carlos</h1>
+        <p class="text-xs text-slate-500">Panel de administración de fiados y clientes</p>
       </div>
       <button id="btn-logout" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Cerrar Sesión</button>
     </header>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       
-      <!-- 1. Registrar Nuevo Fiado -->
+      <!-- 1. Registrar Movimiento (Fiado o Abono) -->
       <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
         <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-          <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i> Registrar Fiado a Cliente
+          <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i> Registrar Movimiento (Fiado / Abono)
         </h2>
         <form id="form-fiado" class="space-y-3">
           <div>
@@ -33,15 +33,24 @@
               <option value="">-- Carga clientes primero --</option>
             </select>
           </div>
+
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Concepto / Productos</label>
-            <input type="text" id="concepto" placeholder="Ej: 1 Leche, 1 Pan" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+            <label class="block text-xs font-bold text-slate-600 uppercase">Tipo de Movimiento</label>
+            <select id="tipo-movimiento" class="w-full p-3 bg-slate-50 border rounded-xl text-sm outline-none font-semibold">
+              <option value="fiado">➕ Fiado / Compra (Suma a la deuda)</option>
+              <option value="abono">➖ Abono / Pago (Resta a la deuda)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase">Concepto / Descripción</label>
+            <input type="text" id="concepto" placeholder="Ej: Saldo anterior / 1 Leche" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-600 uppercase">Monto ($)</label>
-            <input type="number" id="monto" placeholder="12800" required min="1" class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+            <input type="number" id="monto" placeholder="4500" required min="1" class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
-          <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl text-sm shadow">Guardar Fiado</button>
+          <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl text-sm shadow">Registrar Transacción</button>
         </form>
       </section>
 
@@ -52,15 +61,15 @@
         </h2>
         <form id="form-crear-cliente" class="space-y-3">
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Nombre Completo</label>
-            <input type="text" id="nuevo-nombre" placeholder="Ej: Carlos Martínez" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+            <label class="block text-xs font-bold text-slate-600 uppercase">Nombre Completo del Cliente</label>
+            <input type="text" id="nuevo-nombre" placeholder="Ej: Familia Pérez" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Usuario de Acceso (Sin espacios)</label>
-            <input type="text" id="nuevo-user" placeholder="Ej: carlos01" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
+            <label class="block text-xs font-bold text-slate-600 uppercase">Usuario de Acceso</label>
+            <input type="text" id="nuevo-user" placeholder="Ej: perez01" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase">Contraseña asignada</label>
+            <label class="block text-xs font-bold text-slate-600 uppercase">Contraseña / Clave Única</label>
             <input type="password" id="nuevo-pass" placeholder="••••••••" required class="w-full p-3 bg-slate-50 border rounded-xl text-sm">
           </div>
           <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 rounded-xl text-sm shadow">Crear Cuenta de Cliente</button>
