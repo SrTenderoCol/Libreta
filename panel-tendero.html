@@ -2,145 +2,161 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Panel Tendero - SeñorTendero</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
-<body class="antialiased p-4 sm:p-8 flex flex-col justify-between min-h-screen">
+<body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
-  <main class="w-full max-w-6xl mx-auto space-y-6">
-    <header class="flex justify-between items-center bg-white/90 p-6 rounded-3xl shadow-sm border">
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
+    <div class="flex items-center space-x-3">
+      <div class="p-2 bg-blue-600 text-white rounded-xl">
+        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+      </div>
       <div>
-        <h1 class="text-xl font-extrabold text-slate-900">🛒 Bienvenido Don Carlos</h1>
-        <p class="text-xs text-slate-500">Gestión de cuentas individuales por cliente</p>
+        <h1 class="font-extrabold text-slate-800 text-base" id="nombre-tendero-saludo">Bienvenido Don Carlos</h1>
+        <p class="text-xs text-slate-400">Gestión de cuentas individuales por cliente</p>
       </div>
-      <button id="btn-logout" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition">Cerrar Sesión</button>
-    </header>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      <!-- COLUMNA IZQUIERDA: Lista de Clientes y Creación -->
-      <div class="space-y-6 md:col-span-1">
-        
-        <!-- Lista de Clientes -->
-        <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
-          <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-            <i data-lucide="users" class="w-4 h-4 text-blue-600"></i> Seleccionar Cuenta
-          </h2>
-          <div id="lista-clientes-tendero" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-            <p class="text-xs text-slate-400">Cargando clientes...</p>
-          </div>
-        </section>
-
-        <!-- Crear Cuenta de Cliente -->
-        <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
-          <h2 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-            <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i> Nuevo Cliente
-          </h2>
-          <form id="form-crear-cliente" class="space-y-3">
-            <div>
-              <label class="block text-xs font-bold text-slate-600 uppercase">Nombre Completo</label>
-              <input type="text" id="nuevo-nombre" placeholder="Ej: Pepito Pérez" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-600 uppercase">Usuario</label>
-              <input type="text" id="nuevo-user" placeholder="Ej: pepito01" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-600 uppercase">Contraseña</label>
-              <input type="password" id="nuevo-pass" placeholder="••••••••" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-sm">
-            </div>
-            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-xs shadow">Crear Cuenta</button>
-          </form>
-        </section>
-
-      </div>
-
-      <!-- COLUMNA DERECHA: Cuenta Activa del Cliente Seleccionado -->
-      <div class="md:col-span-2 space-y-6">
-        
-        <!-- Si no hay cliente seleccionado -->
-        <div id="sin-seleccion" class="bg-white/90 p-12 rounded-3xl shadow-sm border text-center space-y-3">
-          <i data-lucide="mouse-pointer-click" class="w-12 h-12 text-slate-300 mx-auto"></i>
-          <h2 class="text-base font-bold text-slate-700">Ninguna cuenta seleccionada</h2>
-          <p class="text-xs text-slate-400">Haz clic en un cliente de la lista izquierda para abrir su cuenta y gestionar sus fiados o abonos de forma segura.</p>
-        </div>
-
-        <!-- Panel Individual del Cliente (Oculto al inicio) -->
-        <div id="panel-cliente-activo" class="space-y-6 hidden">
-          
-          <!-- Encabezado de la cuenta, saldo actual y botón de eliminar cuenta -->
-          <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <p class="text-xs font-bold uppercase text-blue-100">Cuenta Activa</p>
-              <h2 id="titulo-cliente-activo" class="text-2xl font-black mt-1">Nombre del Cliente</h2>
-              <p id="deuda-cliente-activo" class="text-3xl font-black mt-1">$0</p>
-            </div>
-            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              <div class="text-left sm:text-right">
-                <p class="text-xs font-bold uppercase text-blue-100">Deuda Total</p>
-              </div>
-              <button id="btn-eliminar-cuenta" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1">
-                <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar Cuenta
-              </button>
-            </div>
-          </div>
-
-          <!-- Formulario exclusivo para agregar movimiento a ESTE cliente -->
-          <section class="bg-white/90 p-6 rounded-3xl shadow-sm border space-y-4">
-            <h3 class="text-sm font-bold text-slate-800 uppercase flex items-center gap-2">
-              <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Registrar Transacción para este Cliente
-            </h3>
-            <form id="form-fiado-individual" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Tipo</label>
-                <select id="tipo-movimiento" class="w-full p-2.5 bg-slate-50 border rounded-xl text-xs font-semibold outline-none">
-                  <option value="fiado">➕ Fiado (Suma)</option>
-                  <option value="abono">➖ Abono (Resta)</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Concepto</label>
-                <input type="text" id="concepto" placeholder="Ej: 1 Leche / Abono" required class="w-full p-2.5 bg-slate-50 border rounded-xl text-xs">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Monto ($)</label>
-                <input type="number" id="monto" placeholder="4500" required min="1" class="w-full p-2.5 bg-slate-50 border rounded-xl text-xs">
-              </div>
-              <button type="submit" class="sm:col-span-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-xs shadow transition">Guardar en la cuenta de este cliente</button>
-            </form>
-          </section>
-
-          <!-- Historial de movimientos del cliente seleccionado -->
-          <section class="bg-white/90 p-6 rounded-3xl shadow-sm border">
-            <h3 class="text-sm font-bold text-slate-800 uppercase mb-4">Historial de Movimientos de la Cuenta</h3>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-sm">
-                <thead>
-                  <tr class="border-b text-slate-400 text-xs uppercase">
-                    <th class="pb-2">Fecha</th>
-                    <th class="pb-2">Detalle</th>
-                    <th class="pb-2 text-right">Valor</th>
-                  </tr>
-                </thead>
-                <tbody id="tabla-cliente-activo" class="divide-y"></tbody>
-              </table>
-            </div>
-          </section>
-
-        </div>
-
-      </div>
-
     </div>
+    <button id="btn-logout" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold px-3 py-2 rounded-xl transition border border-rose-200">
+      Cerrar Sesión
+    </button>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-6 my-auto">
+    
+    <!-- Columna Izquierda: Lista de Cuentas y Crear Cliente -->
+    <div class="space-y-6">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+          <i data-lucide="users" class="w-4 h-4"></i> Seleccionar Cuenta
+        </h2>
+        <div id="lista-clientes-tendero" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <p class="text-xs text-slate-400 p-2">Cargando clientes...</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+          <i data-lucide="user-plus" class="w-4 h-4"></i> Nuevo Cliente
+        </h2>
+        <form id="form-crear-cliente" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label>
+            <input type="text" id="nuevo-nombre" required placeholder="Ej: Pepito Pérez" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Usuario</label>
+            <input type="text" id="nuevo-user" required placeholder="Ej: pepito01" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
+            <input type="password" id="nuevo-pass" required placeholder="••••••" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 rounded-xl text-xs transition shadow-sm">
+            Crear Cuenta
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Panel Activo del Cliente Seleccionado -->
+    <div class="md:col-span-2 space-y-6">
+      <div id="sin-seleccion" class="bg-white p-12 rounded-2xl border border-slate-200 text-center shadow-sm">
+        <i data-lucide="arrow-left-circle" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+        <h3 class="font-bold text-slate-700 text-base">Ninguna cuenta seleccionada</h3>
+        <p class="text-xs text-slate-400 mt-1">Haz clic en un cliente de la lista de la izquierda para ver su libreta y registrar transacciones.</p>
+      </div>
+
+      <div id="panel-cliente-activo" class="hidden space-y-6">
+        <!-- Tarjeta de Deuda Total -->
+        <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-md flex justify-between items-center">
+          <div>
+            <p class="text-xs text-blue-100 uppercase tracking-wider font-semibold">Cuenta Activa</p>
+            <h2 id="titulo-cliente-activo" class="text-xl font-black mt-1">Cliente</h2>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-blue-100 block">Deuda Total</span>
+            <span id="deuda-cliente-activo" class="text-2xl font-black">$0</span>
+          </div>
+          <button id="btn-eliminar-cuenta" class="bg-rose-500 hover:bg-rose-600 text-white p-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1">
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar Cuenta
+          </button>
+        </div>
+
+        <!-- Formulario para Registrar Transacción -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+            <i data-lucide="file-text" class="w-4 h-4"></i> Registrar Transacción para este cliente
+          </h3>
+          <form id="form-fiado-individual" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo</label>
+              <select id="tipo-movimiento" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="fiado">+ Fiado (Suma)</option>
+                <option value="abono">- Abono (Descuenta / Limpia)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Concepto</label>
+              <input type="text" id="concepto" required placeholder="Ej: 1 Leche / Abono" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Monto ($)</label>
+              <input type="number" id="monto" required min="1" placeholder="4500" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" class="md:col-span-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-sm">
+              Guardar en la cuenta de este cliente
+            </button>
+          </form>
+        </div>
+
+        <!-- Historial / Estado Actual -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Historial de Movimientos de la Cuenta</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b text-xs text-slate-400 uppercase">
+                  <th class="pb-2">Fecha</th>
+                  <th class="pb-2">Detalle</th>
+                  <th class="pb-2 text-right">Valor</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-cliente-activo">
+                <tr><td colspan="3" class="py-4 text-center text-xs text-slate-400">Selecciona un cliente para ver su libreta.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
-  <footer class="text-center py-6 text-xs text-slate-400 mt-8">
-    SeñorTendero &copy; 2026 &bull; Hecho por **Carlos Andres Martinez Soto** &bull; Desarrollado en **GitHub** 🇨🇴
+  <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-100">
+    SeñorTendero © 2026 • Creado para gestión limpia de deudas
   </footer>
 
   <script type="module" src="app.js"></script>
+  <script>
+    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+  </script>
 </body>
 </html>
