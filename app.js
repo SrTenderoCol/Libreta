@@ -126,7 +126,23 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     saludoTendero.textContent = `Bienvenido, ${sesion.nombre}`;
   }
 
-  // CAMBIAR CONTRASEÑA DEL VENDEDOR
+  // CAMBIAR USUARIO Y/O CONTRASEÑA DEL VENDEDOR
+  async function usuarioEnUso(usuario, nodoPropio, clavePropia) {
+    for (const nodo of ["vendedores_tienda", "clientes_tienda"]) {
+      let registros = {};
+      try { registros = (await get(ref(db, nodo))).val() || {}; } catch (_) { /* sin permiso o vacío */ }
+      for (const key of Object.keys(registros)) {
+        if (nodo === nodoPropio && key === clavePropia) continue; // es la propia cuenta
+        const c = registros[key];
+        if (c && typeof c.usuario === "string" && c.usuario.trim().toLowerCase() === usuario) return true;
+      }
+    }
+    return false;
+  }
+
+  const textoUsuarioActual = document.getElementById("usuario-actual-texto");
+  if (textoUsuarioActual && sesion) textoUsuarioActual.textContent = sesion.usuario || VENDEDOR_USER;
+
   const formCambiarPass = document.getElementById("form-cambiar-pass");
   if (formCambiarPass) {
     formCambiarPass.addEventListener("submit", async (e) => {
@@ -139,47 +155,77 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
       };
 
       const actual = document.getElementById("pass-actual").value.trim();
+      const nuevoUsuario = document.getElementById("nuevo-usuario").value.trim().toLowerCase();
       const nueva = document.getElementById("pass-nueva").value.trim();
       const confirmar = document.getElementById("pass-confirmar").value.trim();
 
-      if (nueva.length < 6) return mostrar("La nueva contraseña debe tener al menos 6 caracteres.", false);
-      if (nueva !== confirmar) return mostrar("La confirmación no coincide con la nueva contraseña.", false);
-      if (nueva === actual) return mostrar("La nueva contraseña debe ser diferente a la actual.", false);
+      const cambiaUsuario = nuevoUsuario !== "" && nuevoUsuario !== String(sesion.usuario || "").toLowerCase();
+      const cambiaPass = nueva !== "";
+
+      if (!cambiaUsuario && !cambiaPass) {
+        return mostrar("Escribe un nuevo usuario y/o una nueva contraseña.", false);
+      }
+      if (cambiaUsuario && (nuevoUsuario.length < 3 || /\s/.test(nuevoUsuario))) {
+        return mostrar("El usuario debe tener al menos 3 caracteres y no puede tener espacios.", false);
+      }
+      if (cambiaPass) {
+        if (nueva.length < 6) return mostrar("La nueva contraseña debe tener al menos 6 caracteres.", false);
+        if (nueva !== confirmar) return mostrar("La confirmación no coincide con la nueva contraseña.", false);
+        if (nueva === actual) return mostrar("La nueva contraseña debe ser diferente a la actual.", false);
+      }
 
       const origen = sesion.origen || "fijo";
       if (origen !== "fijo" && !sesion.firebaseKey) {
-        return mostrar("Cierra sesión y vuelve a entrar para poder cambiar la contraseña.", false);
+        return mostrar("Cierra sesión y vuelve a entrar para poder cambiar tus datos.", false);
       }
 
       try {
-        let refCuenta;
-        let passGuardada;
+        const nodoPropio = origen === "clientes" ? "clientes_tienda" : "vendedores_tienda";
+        const clavePropia = origen === "fijo" ? VENDEDOR_USER : sesion.firebaseKey;
+        const refCuenta = ref(db, `${nodoPropio}/${clavePropia}`);
 
-        if (origen === "fijo") {
-          refCuenta = ref(db, `vendedores_tienda/${VENDEDOR_USER}`);
-          const snap = await get(refCuenta);
-          passGuardada = snap.exists() ? String(snap.val().password) : VENDEDOR_PASS;
-        } else {
-          const nodo = origen === "clientes" ? "clientes_tienda" : "vendedores_tienda";
-          refCuenta = ref(db, `${nodo}/${sesion.firebaseKey}`);
-          const snap = await get(refCuenta);
-          passGuardada = String((snap.val() || {}).password);
-        }
+        const snap = await get(refCuenta);
+        const datosActuales = snap.exists()
+          ? snap.val()
+          : (origen === "fijo" ? { nombre: "Tendero", usuario: VENDEDOR_USER, password: VENDEDOR_PASS } : {});
 
-        if (actual !== passGuardada) {
+        if (actual !== String(datosActuales.password)) {
           return mostrar("La contraseña actual no es correcta.", false);
         }
 
+        if (cambiaUsuario) {
+          // "tendero" está reservado para la cuenta fija
+          if (nuevoUsuario === VENDEDOR_USER && origen !== "fijo") {
+            return mostrar("Ese usuario no está disponible. Elige otro.", false);
+          }
+          if (await usuarioEnUso(nuevoUsuario, nodoPropio, clavePropia)) {
+            return mostrar("Ese usuario ya está en uso. Elige otro.", false);
+          }
+        }
+
+        const cambios = {};
+        if (cambiaUsuario) cambios.usuario = nuevoUsuario;
+        if (cambiaPass) cambios.password = nueva;
+
         if (origen === "fijo") {
-          await set(refCuenta, { nombre: "Tendero", usuario: VENDEDOR_USER, password: nueva });
+          await set(refCuenta, { ...datosActuales, ...cambios });
         } else {
-          await update(refCuenta, { password: nueva });
+          await update(refCuenta, cambios);
+        }
+
+        if (cambiaUsuario) {
+          sesion.usuario = nuevoUsuario;
+          localStorage.setItem("sesion_activo", JSON.stringify(sesion));
+          if (textoUsuarioActual) textoUsuarioActual.textContent = nuevoUsuario;
         }
 
         formCambiarPass.reset();
-        mostrar("¡Contraseña actualizada con éxito!", true);
+        const partes = [];
+        if (cambiaUsuario) partes.push("usuario");
+        if (cambiaPass) partes.push("contraseña");
+        mostrar(`¡Listo! Se actualizó tu ${partes.join(" y tu ")}.`, true);
       } catch (err) {
-        mostrar("No se pudo cambiar la contraseña. Revisa tu conexión e intenta de nuevo.", false);
+        mostrar("No se pudo guardar el cambio. Revisa tu conexión e intenta de nuevo.", false);
       }
     });
   }
