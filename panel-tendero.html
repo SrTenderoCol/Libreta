@@ -71,15 +71,20 @@
         <!-- Panel Individual del Cliente (Oculto al inicio) -->
         <div id="panel-cliente-activo" class="space-y-6 hidden">
           
-          <!-- Encabezado de la cuenta y saldo actual -->
-          <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center">
+          <!-- Encabezado de la cuenta, saldo actual y botón de eliminar cuenta -->
+          <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <p class="text-xs font-bold uppercase text-blue-100">Cuenta Activa</p>
               <h2 id="titulo-cliente-activo" class="text-2xl font-black mt-1">Nombre del Cliente</h2>
-            </div>
-            <div class="text-right">
-              <p class="text-xs font-bold uppercase text-blue-100">Deuda Total</p>
               <p id="deuda-cliente-activo" class="text-3xl font-black mt-1">$0</p>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <div class="text-left sm:text-right">
+                <p class="text-xs font-bold uppercase text-blue-100">Deuda Total</p>
+              </div>
+              <button id="btn-eliminar-cuenta" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-bold shadow transition flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar Cuenta
+              </button>
             </div>
           </div>
 
