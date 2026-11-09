@@ -1,11 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
 
-// TODO: Reemplaza con tus datos reales de la consola de Firebase si aún no lo has hecho
+// TODO: Reemplaza con tus credenciales reales de Firebase
 const firebaseConfig = {
   apiKey: "TU_API_KEY",
   authDomain: "tu-proyecto.firebaseapp.com",
@@ -80,7 +80,6 @@ const listaClientesTendero = document.getElementById("lista-clientes-tendero");
 const formFiadoIndividual = document.getElementById("form-fiado-individual");
 const btnEliminarCuenta = document.getElementById("btn-eliminar-cuenta");
 
-// Verificamos si estamos en la vista del tendero
 if (window.location.pathname.includes("panel-tendero.html") || listaClientesTendero) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
   if (!sesion || sesion.tipo !== "tendero") {
@@ -96,7 +95,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
       const password = document.getElementById("nuevo-pass").value.trim();
 
       const nuevoClienteRef = push(ref(db, 'clientes_tienda'));
-      set(nuevoClienteRef, { nombre, usuario, password })
+      set(nuevoClienteRef, { nombre, usuario, password, deudaActual: 0, conceptoActual: "Al día (Sin deudas)" })
         .then(() => {
           alert(`¡Cuenta creada con éxito para ${nombre}!`);
           formCrearCliente.reset();
@@ -107,7 +106,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     });
   }
 
-  // B. Cargar y escuchar la lista de clientes en tiempo real
+  // B. Cargar la lista de clientes
   onValue(ref(db, 'clientes_tienda'), (snapshot) => {
     const clientes = snapshot.val() || {};
     if (listaClientesTendero) {
@@ -121,13 +120,14 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
       Object.keys(clientes).forEach(key => {
         const c = clientes[key];
         const activoClase = clienteSeleccionadoParaEditar === c.nombre ? "bg-blue-50 border-blue-500 text-blue-700 font-bold" : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700";
+        const deudaTxt = c.deudaActual ? `$${c.deudaActual.toLocaleString("es-CO")}` : "$0";
         
         const divCliente = document.createElement("div");
         divCliente.className = `p-3 rounded-xl border text-sm cursor-pointer transition flex justify-between items-center ${activoClase}`;
         divCliente.innerHTML = `
           <div>
             <p class="font-bold">${c.nombre}</p>
-            <p class="text-xs text-slate-400">Usuario: ${c.usuario}</p>
+            <p class="text-xs text-slate-400">Debe: <span class="font-semibold text-slate-700">${deudaTxt}</span></p>
           </div>
           <span class="text-xs bg-white px-2 py-1 rounded-lg border shadow-sm">Abrir &rarr;</span>
         `;
@@ -139,7 +139,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
           document.getElementById("panel-cliente-activo").classList.remove("hidden");
           document.getElementById("titulo-cliente-activo").textContent = c.nombre;
           
-          // Forzar redibujado para reflejar selección
           onValue(ref(db, 'clientes_tienda'), () => {}, { onlyOnce: true });
         });
 
@@ -148,98 +147,102 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     }
   });
 
-  // C. Botón para eliminar la cuenta seleccionada
+  // C. Botón para eliminar cuenta completa
   if (btnEliminarCuenta) {
     btnEliminarCuenta.addEventListener("click", () => {
       if (!clienteSeleccionadoParaEditar || !idFirebaseClienteSeleccionado) return;
 
-      const confirmar = confirm(`¿Estás seguro de eliminar la cuenta de ${clienteSeleccionadoParaEditar}? Se borrará su acceso y todo su historial.`);
+      const confirmar = confirm(`¿Estás seguro de eliminar la cuenta de ${clienteSeleccionadoParaEditar}?`);
       if (confirmar) {
         remove(ref(db, `clientes_tienda/${idFirebaseClienteSeleccionado}`))
           .then(() => {
             alert("Cuenta eliminada con éxito.");
             clienteSeleccionadoParaEditar = null;
             idFirebaseClienteSeleccionado = null;
-            document.getElementById("sin-seleccion").classList.remove("hidden");
+            document.getElementById("sin-seleccion").classList.add("hidden");
             document.getElementById("panel-cliente-activo").classList.add("hidden");
-          })
-          .catch((error) => {
-            alert("Hubo un error al eliminar la cuenta: " + error.message);
           });
       }
     });
   }
 
-  // D. Registrar transacción (fiado o abono) exclusivamente al cliente abierto
+  // D. Registrar transacción actual (Suma si es fiado, resta o limpia si es abono)
   if (formFiadoIndividual) {
     formFiadoIndividual.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!clienteSeleccionadoParaEditar) {
-        alert("Por favor selecciona un cliente primero.");
+      if (!clienteSeleccionadoParaEditar || !idFirebaseClienteSeleccionado) {
+        alert("Selecciona un cliente primero.");
         return;
       }
 
       const tipo = document.getElementById("tipo-movimiento").value; 
-      let concepto = document.getElementById("concepto").value.trim();
-      let monto = parseFloat(document.getElementById("monto").value);
+      const conceptoInput = document.getElementById("concepto").value.trim();
+      const montoInput = parseFloat(document.getElementById("monto").value);
 
-      if (tipo === "abono") {
-        monto = -monto;
-        if (!concepto.toLowerCase().includes("abono") && !concepto.toLowerCase().includes("pago")) {
-          concepto = "Abono / Pago: " + concepto;
+      // Consultamos el estado actual del cliente en Firebase para hacer el cálculo exacto
+      const clienteRef = ref(db, `clientes_tienda/${idFirebaseClienteSeleccionado}`);
+      onValue(clienteRef, (snapshot) => {
+        const datosCliente = snapshot.val() || {};
+        let deudaActual = datosCliente.deudaActual || 0;
+        let nuevoConcepto = "";
+        let nuevaDeuda = 0;
+
+        if (tipo === "fiado") {
+          // Si es fiado, sumamos al presente
+          nuevaDeuda = deudaActual + montoInput;
+          nuevoConcepto = conceptoInput; 
+        } else {
+          // Si es abono o pago
+          nuevaDeuda = deudaActual - montoInput;
+          if (nuevaDeuda <= 0) {
+            nuevaDeuda = 0;
+            nuevoConcepto = "¡Cuenta al día / Pagado!";
+          } else {
+            nuevoConcepto = `Abono de $${montoInput.toLocaleString("es-CO")} (${conceptoInput})`;
+          }
         }
-      }
 
-      const fechaHora = new Date().toLocaleString("es-CO", {
-        year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
-      });
+        // Actualizamos directamente el registro limpio del presente en Firebase
+        update(clienteRef, {
+          deudaActual: nuevaDeuda,
+          conceptoActual: nuevoConcepto,
+          ultimaActualizacion: new Date().toLocaleString("es-CO", {
+            year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+          })
+        }).then(() => {
+          formFiadoIndividual.reset();
+          alert(`¡Actualizado! Nuevo saldo pendiente: $${nuevaDeuda.toLocaleString("es-CO")}`);
+        });
 
-      push(ref(db, 'fiados_tienda'), { cliente: clienteSeleccionadoParaEditar, concepto, monto, fechaHora });
-      formFiadoIndividual.reset();
-      alert(`¡Transacción guardada en la cuenta de ${clienteSeleccionadoParaEditar}!`);
+      }, { onlyOnce: true });
     });
   }
 
-  // E. Escuchar en tiempo real los movimientos del cliente abierto
-  onValue(ref(db, 'fiados_tienda'), (snapshot) => {
-    const data = snapshot.val() || {};
+  // E. Mostrar únicamente el estado presente en el panel del tendero
+  onValue(ref(db, `clientes_tienda`), (snapshot) => {
+    const clientes = snapshot.val() || {};
     const tbody = document.getElementById("tabla-cliente-activo");
     const deudaTxt = document.getElementById("deuda-cliente-activo");
-    
-    if (tbody && clienteSeleccionadoParaEditar) {
-      tbody.innerHTML = "";
-      let totalCuenta = 0;
-      let hayMovimientos = false;
 
-      Object.keys(data).forEach(key => {
-        const item = data[key];
-        if (item.cliente === clienteSeleccionadoParaEditar) {
-          hayMovimientos = true;
-          totalCuenta += item.monto;
-          const esAbono = item.monto < 0;
-          const colorClase = esAbono ? "text-emerald-600" : "text-blue-600";
-          const signo = esAbono ? "" : "+";
+    if (tbody && clienteSeleccionadoParaEditar && idFirebaseClienteSeleccionado) {
+      const c = clientes[idFirebaseClienteSeleccionado];
+      if (c) {
+        const deuda = c.deudaActual || 0;
+        deudaTxt.textContent = `$${deuda.toLocaleString("es-CO")}`;
 
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-50">
-              <td class="py-3 text-xs text-slate-500">${item.fechaHora}</td>
-              <td class="py-3 text-slate-600">${item.concepto}</td>
-              <td class="py-3 text-right font-extrabold ${colorClase}">${signo}$${item.monto.toLocaleString("es-CO")}</td>
-            </tr>
-          `;
-        }
-      });
-
-      if (!hayMovimientos) {
-        tbody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-xs text-slate-400">No hay movimientos registrados para este cliente.</td></tr>`;
+        tbody.innerHTML = `
+          <tr class="hover:bg-slate-50">
+            <td class="py-3 text-xs text-slate-500">${c.ultimaActualizacion || "Reciente"}</td>
+            <td class="py-3 text-slate-700 font-medium">${c.conceptoActual || "Sin movimientos"}</td>
+            <td class="py-3 text-right font-extrabold ${deuda > 0 ? 'text-blue-600' : 'text-emerald-600'}">$${deuda.toLocaleString("es-CO")}</td>
+          </tr>
+        `;
       }
-
-      deudaTxt.textContent = `$${totalCuenta.toLocaleString("es-CO")}`;
     }
   });
 }
 
-// 3. LÓGICA DEL PANEL DEL CLIENTE
+// 3. LÓGICA DEL PANEL DEL CLIENTE (Muestra solo su saldo actual y concepto limpio)
 const tablaCliente = document.getElementById("tabla-cliente");
 if (tablaCliente) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
@@ -249,28 +252,30 @@ if (tablaCliente) {
     document.getElementById("nombre-cliente-saludo").textContent = `Bienvenido, ${sesion.nombre}`;
   }
 
-  onValue(ref(db, 'fiados_tienda'), (snapshot) => {
-    const data = snapshot.val() || {};
+  onValue(ref(db, 'clientes_tienda'), (snapshot) => {
+    const clientes = snapshot.val() || {};
     tablaCliente.innerHTML = "";
-    let miTotal = 0;
+    let miDeudaTotal = 0;
+    let miConcepto = "Al día";
+    let ultimaFecha = "-";
 
-    Object.keys(data).forEach(key => {
-      const item = data[key];
-      if (item.cliente === sesion.nombre) {
-        miTotal += item.monto;
-        const esAbono = item.monto < 0;
-        const colorClase = esAbono ? "text-emerald-600" : "text-blue-600";
-        const signo = esAbono ? "" : "+";
-
-        tablaCliente.innerHTML += `
-          <tr class="hover:bg-slate-50">
-            <td class="py-3 text-xs text-slate-500">${item.fechaHora}</td>
-            <td class="py-3 text-slate-600">${item.concepto}</td>
-            <td class="py-3 text-right font-extrabold ${colorClase}">${signo}$${item.monto.toLocaleString("es-CO")}</td>
-          </tr>
-        `;
+    Object.keys(clientes).forEach(key => {
+      const c = clientes[key];
+      if (c.nombre === sesion.nombre) {
+        miDeudaTotal = c.deudaActual || 0;
+        miConcepto = c.conceptoActual || "Al día";
+        ultimaFecha = c.ultimaActualizacion || "-";
       }
     });
-    document.getElementById("mi-deuda").textContent = `$${miTotal.toLocaleString("es-CO")}`;
+
+    document.getElementById("mi-deuda").textContent = `$${miDeudaTotal.toLocaleString("es-CO")}`;
+
+    tablaCliente.innerHTML = `
+      <tr class="hover:bg-slate-50">
+        <td class="py-3 text-xs text-slate-500">${ultimaFecha}</td>
+        <td class="py-3 text-slate-700 font-medium">${miConcepto}</td>
+        <td class="py-3 text-right font-extrabold ${miDeudaTotal > 0 ? 'text-blue-600' : 'text-emerald-600'}">$${miDeudaTotal.toLocaleString("es-CO")}</td>
+      </tr>
+    `;
   });
 }
