@@ -5,7 +5,6 @@ if (typeof lucide !== 'undefined') {
   lucide.createIcons();
 }
 
-// Credenciales reales de Firebase del proyecto Srtendero
 const firebaseConfig = {
   apiKey: "AIzaSyDnZ_hVN2l3F6yGsC5LwtVXqEVsq6tCqUc",
   authDomain: "srtendero2026.firebaseapp.com",
@@ -42,18 +41,25 @@ if (formLogin) {
     const clientesRef = ref(db, 'clientes_tienda');
     onValue(clientesRef, (snapshot) => {
       const clientes = snapshot.val() || {};
-      let clienteEncontrado = null;
+      let clienteEncontradoKey = null;
+      let datosCliente = null;
 
       Object.keys(clientes).forEach(key => {
         const c = clientes[key];
         if (c.usuario.toLowerCase() === usuarioIngresado && c.password === passwordIngresado) {
-          clienteEncontrado = c;
+          clienteEncontradoKey = key;
+          datosCliente = c;
         }
       });
 
-      if (clienteEncontrado) {
-        const nombreFinal = nombreIngresado ? nombreIngresado : clienteEncontrado.nombre;
-        localStorage.setItem("sesion_activo", JSON.stringify({ tipo: "cliente", nombre: nombreFinal }));
+      if (datosCliente) {
+        // Guardamos tanto el nombre real del tendero como su llave única en Firebase para enlazarlos sin fallo
+        const nombreFinal = datosCliente.nombre;
+        localStorage.setItem("sesion_activo", JSON.stringify({ 
+          tipo: "cliente", 
+          nombre: nombreFinal, 
+          firebaseKey: clienteEncontradoKey 
+        }));
         window.location.href = "panel-cliente.html";
       } else {
         errorMsg.textContent = "Usuario o contraseña incorrectos.";
@@ -71,7 +77,6 @@ if (btnLogout) {
   });
 }
 
-// Variables globales para el panel del tendero
 let clienteSeleccionadoParaEditar = null;
 let idFirebaseClienteSeleccionado = null;
 
@@ -87,7 +92,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     window.location.href = "index.html";
   }
 
-  // A. Crear cliente nuevo con saldo en ceros por defecto
   if (formCrearCliente) {
     formCrearCliente.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -118,7 +122,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     });
   }
 
-  // B. Cargar la lista de clientes en tiempo real
   onValue(ref(db, 'clientes_tienda'), (snapshot) => {
     const clientes = snapshot.val() || {};
     if (listaClientesTendero) {
@@ -150,8 +153,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
           document.getElementById("sin-seleccion").classList.add("hidden");
           document.getElementById("panel-cliente-activo").classList.remove("hidden");
           document.getElementById("titulo-cliente-activo").textContent = c.nombre;
-          
-          onValue(ref(db, 'clientes_tienda'), () => {}, { onlyOnce: true });
         });
 
         listaClientesTendero.appendChild(divCliente);
@@ -159,7 +160,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     }
   });
 
-  // C. Botón para eliminar cuenta completa
   if (btnEliminarCuenta) {
     btnEliminarCuenta.addEventListener("click", () => {
       if (!clienteSeleccionadoParaEditar || !idFirebaseClienteSeleccionado) return;
@@ -178,7 +178,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     });
   }
 
-  // D. Registrar transacción (Suma si es fiado, descuenta/limpia si es abono)
   if (formFiadoIndividual) {
     formFiadoIndividual.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -226,7 +225,6 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
     });
   }
 
-  // E. Mostrar estado actual en el panel del tendero
   onValue(ref(db, `clientes_tienda`), (snapshot) => {
     const clientes = snapshot.val() || {};
     const tbody = document.getElementById("tabla-cliente-activo");
@@ -250,7 +248,7 @@ if (window.location.pathname.includes("panel-tendero.html") || listaClientesTend
   });
 }
 
-// 3. LÓGICA DEL PANEL DEL CLIENTE
+// 3. LÓGICA DEL PANEL DEL CLIENTE (Enlazado directamente por Firebase Key)
 const tablaCliente = document.getElementById("tabla-cliente");
 if (tablaCliente) {
   const sesion = JSON.parse(localStorage.getItem("sesion_activo"));
@@ -260,30 +258,23 @@ if (tablaCliente) {
     document.getElementById("nombre-cliente-saludo").textContent = `Bienvenido, ${sesion.nombre}`;
   }
 
-  onValue(ref(db, 'clientes_tienda'), (snapshot) => {
-    const clientes = snapshot.val() || {};
-    tablaCliente.innerHTML = "";
-    let miDeudaTotal = 0;
-    let miConcepto = "Al día";
-    let ultimaFecha = "-";
+  // Consultamos directamente el nodo exacto del cliente en Firebase usando su llave única
+  if (sesion && sesion.firebaseKey) {
+    onValue(ref(db, `clientes_tienda/${sesion.firebaseKey}`), (snapshot) => {
+      const c = snapshot.val() || {};
+      const miDeudaTotal = c.deudaActual || 0;
+      const miConcepto = c.conceptoActual || "Al día";
+      const ultimaFecha = c.ultimaActualizacion || "-";
 
-    Object.keys(clientes).forEach(key => {
-      const c = clientes[key];
-      if (c.nombre === sesion.nombre) {
-        miDeudaTotal = c.deudaActual || 0;
-        miConcepto = c.conceptoActual || "Al día";
-        ultimaFecha = c.ultimaActualizacion || "-";
-      }
+      document.getElementById("mi-deuda").textContent = `$${miDeudaTotal.toLocaleString("es-CO")}`;
+
+      tablaCliente.innerHTML = `
+        <tr class="hover:bg-slate-50">
+          <td class="py-3 text-xs text-slate-500">${ultimaFecha}</td>
+          <td class="py-3 text-slate-700 font-medium">${miConcepto}</td>
+          <td class="py-3 text-right font-extrabold ${miDeudaTotal > 0 ? 'text-blue-600' : 'text-emerald-600'}">$${miDeudaTotal.toLocaleString("es-CO")}</td>
+        </tr>
+      `;
     });
-
-    document.getElementById("mi-deuda").textContent = `$${miDeudaTotal.toLocaleString("es-CO")}`;
-
-    tablaCliente.innerHTML = `
-      <tr class="hover:bg-slate-50">
-        <td class="py-3 text-xs text-slate-500">${ultimaFecha}</td>
-        <td class="py-3 text-slate-700 font-medium">${miConcepto}</td>
-        <td class="py-3 text-right font-extrabold ${miDeudaTotal > 0 ? 'text-blue-600' : 'text-emerald-600'}">$${miDeudaTotal.toLocaleString("es-CO")}</td>
-      </tr>
-    `;
-  });
+  }
 }
